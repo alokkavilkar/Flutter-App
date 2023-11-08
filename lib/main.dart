@@ -78,20 +78,26 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       isConnected = true;
     });
+    print("connecting the device...");
     await device.connect();
     setState(() {
       this.device = device;
     });
+    print("connected to ${device.name}");
+
+    print('finally discovring the type of services it provides.');
     discoverServices();
   }
 
   void disConnectDevices() async {
+    print("disconnecting the device.");
     await device?.disconnect();
     setState(() {
       device = null;
       characteristic = null;
       isConnected = false;
     });
+    print("device disconnected.");
   }
 
   void discoverServices() async {
@@ -116,18 +122,60 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // A method to send data to a characteristic
-  void sendData() async {
+  void sendData(int data) async {
     setState(() {
       isSending = true;
     });
     // Convert the data to a list of bytes
-    List<int> bytes = data.codeUnits;
+    List<int> bytes = [data];
     // Write the bytes to the characteristic
     await characteristic?.write(bytes);
     print("Sent: $bytes");
     setState(() {
       isSending = false;
     });
+  }
+
+  Widget buildButton(String label, int data) {
+    return ElevatedButton(
+      onPressed: isSending ? null : () => sendData(data),
+      child: Text(label),
+    );
+  }
+
+  Widget showConnectedPage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text("Connected to ${device?.name}"),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              buildButton("1", 1),
+              buildButton("2", 2),
+            ],
+          ),
+          SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              buildButton("3", 3),
+              buildButton("4", 4),
+            ],
+          ),
+          ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  isConnected = false;
+                  disConnectDevices();
+                });
+              },
+              child: Text("Back"))
+        ],
+      ),
+    );
   }
 
   Widget buildScanDevices() {
@@ -152,25 +200,32 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget buildConnectDevices() {
-    return Column(
-      children: [
-        Text("Connected to ${device?.name}"),
-        ElevatedButton(onPressed: discoverServices, child: Text("Disconnect")),
-        TextField(
-          decoration: InputDecoration(labelText: "Data to send"),
-          onChanged: (value) {
-            setState(() {
-              data = value;
-            });
-          },
-        ),
-        ElevatedButton(
-            onPressed: isSending ? null : sendData,
-            child: Text(isSending ? "Sending" : "Send Data"))
-      ],
-    );
-  }
+  // Widget buildConnectDevices() {
+  //   print("Connected to ${device?.name}");
+  //   return Column(
+  //     children: [
+  //       Text("Connected to" +  device!.name),
+  //       ElevatedButton(
+  //           onPressed: () {
+  //             setState(() {
+  //               isConnected = false;
+  //             });
+  //           },
+  //           child: Text("Disconnect")),
+  //       TextField(
+  //         decoration: InputDecoration(labelText: "Data to send"),
+  //         onChanged: (value) {
+  //           setState(() {
+  //             data = value;
+  //           });
+  //         },
+  //       ),
+  //       ElevatedButton(
+  //           onPressed: isSending ? null : null,
+  //           child: Text(isSending ? "Sending" : "Send Data"))
+  //     ],
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +235,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: isConnected ? buildConnectDevices() : buildScanDevices(),
+        child: isConnected ? showConnectedPage() : buildScanDevices(),
       ),
     ));
   }
